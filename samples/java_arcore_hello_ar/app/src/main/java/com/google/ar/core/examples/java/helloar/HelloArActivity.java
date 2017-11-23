@@ -84,11 +84,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mSurfaceView = (GLSurfaceView) findViewById(R.id.surfaceview);
-
+        //We create a session
         mSession = new Session(/*context=*/this);
 
+        //Default config, light estimation, motion tracking, environmental understanding
         // Create default config, check is supported, create session from that config.
         mDefaultConfig = Config.createDefaultConfig();
+        //che if those config are supported by the device where is being running
         if (!mSession.isSupported(mDefaultConfig)) {
             Toast.makeText(this, "This device does not support AR", Toast.LENGTH_LONG).show();
             finish();
@@ -224,13 +226,20 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         try {
             // Obtain the current frame from ARSession. When the configuration is set to
             // UpdateMode.BLOCKING (it is by default), this will throttle the rendering to the
-            // camera framerate.
+            // camera framerate. BLOCKING run at the rate which you camera runs. Every
+            //POSE is align with every frame.
+            //or latest camera image  --> if you want smooth update, if you have animations
+            //you might wanna render as fast as you can possibly at the expense of power and
+            //performance
             Frame frame = mSession.update();
 
             // Handle taps. Handling only one tap per frame, as taps are usually low frequency
             // compared to frame rate.
             MotionEvent tap = mQueuedSingleTaps.poll();
+            //if tracking and you don't have for instance the hand on front on your camera phone
             if (tap != null && frame.getTrackingState() == TrackingState.TRACKING) {
+                //hitTest helper function, see if you touch any planes in virtual world
+                //if collided we create and anchor
                 for (HitResult hit : frame.hitTest(tap)) {
                     // Check if any plane was hit, and if it was hit inside the plane polygon.
                     if (hit instanceof PlaneHitResult && ((PlaneHitResult) hit).isHitInPolygon()) {
@@ -261,14 +270,25 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 return;
             }
 
+            //query the frame for all data that you need to render your objects
+            //The projection matrix works match the field of view of your virtual
+            //camera with the field of view with your real camera
+            //the projections matrix contains all of those properties
+            //you just  query to ARCore to gain access of this
+            //like in unity with google VR SDK camera and real camera
             // Get projection matrix.
             float[] projmtx = new float[16];
             mSession.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
 
             // Get camera matrix and draw.
+            //view matrix contains information for motion tracking, contain the pose
+            //where the camera is in real world
             float[] viewmtx = new float[16];
             frame.getViewMatrix(viewmtx, 0);
 
+            //and finally you get access to lighting estimation
+            //when you have the value you can use logic
+            //or use to affect your rendering or lighting
             // Compute lighting from average intensity of the image.
             final float lightIntensity = frame.getLightEstimate().getPixelIntensity();
 
